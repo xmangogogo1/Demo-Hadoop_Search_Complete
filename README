@@ -1,0 +1,21 @@
+0. setup mysql connection, create database, table
+
+1. run docker-cluster:
+   ./start-container.sh
+   in root container:  ./start-all.sh
+   jsp
+
+2. prepare file on hdfs:
+   hdfs dfs -mkdir /input
+   hdfs dfs -put /src/NGram/bookList/* /input
+
+   hdfs dfs -mkdir /mysql # 在hdfs 里面创建mysql的文件夹，然后把一些mysql相关的东西进去
+   hdfs dfs -put mysql-connector-java-*.jar /mysql/  #hdfs path to mysql-connector*
+
+3. run ngram project:
+   cd src/NGram/scr/main/java
+
+   run 2gram,  with threshold_size >= 3, predict_following_words_size = 4:
+   hadoop jar ngram.jar Driver input /output 2 3 4
+
+4. UI setup, then goto localhost:8888

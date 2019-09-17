@@ -1,0 +1,11 @@
+/*
+MapReduce工作流
+1.把数据分成M个小文件(每块大概16M-64M),然后把map-reduce的程序copy给workers和 master(defualt每一个file一个mapper，可用inputfile.splite.maxsize合并同file的mapper，或 inputfile.splite.minsize设置最小的split size)
+2.Master管理workers来执行map，reduce。以map为例子，master有一个map workers pool，还有一个map taskspool，workers pool里找到worker，来执行map task，worker完成任务之后回收到pool里等待被分配下一个task
+3.Map worker 收到一个文件还有map function， 开始执行mapfunction，比如sort，然后把结果存在bufferedmemory中，每隔一段时间，再按照reduce的key 分类规则写入到local disk（比如abcd字母开头，这是一种规则）。完成之后，把这些文件的地址返回给master
+4.Master确认所有map tasks pool中任务都被执行了之后，建立reducetasks pool，从reduce workers pool中分配机器来完成reduce任务
+5.Reduce worker 通过RPC收到file list，还有 reduce function， 根据intermeidatekey排序这些files （外排序），并且写入到最终文件
+6.当所有的Reduce tasks被完成之后，Master向user 汇报完成任务
+
+
+*/

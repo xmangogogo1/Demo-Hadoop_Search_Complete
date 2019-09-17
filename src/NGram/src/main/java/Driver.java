@@ -27,28 +27,31 @@ public class Driver {
 
 		//Define the job to read data sentence by sentence
 		conf1.set("textinputformat.record.delimiter", ".");
+		//conf1.set("mapreduce.input.fileinputformat.split.maxsize","268435456"); // to solve stuck at "map 100%, reuce 0%"": split block size: 256M
 		conf1.set("noGram", numberOfNGram);
-		
+
 		Job job1 = Job.getInstance(conf1);
 		job1.setJobName("NGram");
 		job1.setJarByClass(Driver.class);
-		
-		job1.setMapperClass(NGramLibraryBuilder.NGramMapper.class);
+
+		//define job's Mapper, Reducer
+		job1.setMapperClass(NGramLibraryBuilder.NGramMapper.class); //NGramLibraryBuilder contains job1's Mapper & Reducer classes: NGramMapper class & NGramReducer class
 		job1.setReducerClass(NGramLibraryBuilder.NGramReducer.class);
-		
-		job1.setOutputKeyClass(Text.class);
-		job1.setOutputValueClass(IntWritable.class);
-		
+
+		// define output of job1's Reducer
+		job1.setOutputKeyClass(Text.class); //Writable wrapper of String, for comparasion & light-weight serialization
+		job1.setOutputValueClass(IntWritable.class); //Writable wrapper of int
+
 		job1.setInputFormatClass(TextInputFormat.class);
 		job1.setOutputFormatClass(TextOutputFormat.class);
 
 		TextInputFormat.setInputPaths(job1, new Path(inputDir));
 		TextOutputFormat.setOutputPath(job1, new Path(nGramLib));
-		job1.waitForCompletion(true);
-		
+		job1.waitForCompletion(true);//start to run job1 only when the former job finished
+
 		//how to connect two jobs?
 		// last output is second input
-		
+
 		//2nd job
 		Configuration conf2 = new Configuration();
 		conf2.set("threshold", threshold);
@@ -56,14 +59,14 @@ public class Driver {
 
 		//Use dbConfiguration to configure all the jdbcDriver, db user, db password, database
 
-		DBConfiguration.configureDB(conf2, 
+		DBConfiguration.configureDB(conf2,
 				"com.mysql.jdbc.Driver",
-				"jdbc:mysql://172.31.112.172:8889/test",  
+				"jdbc:mysql://172.31.112.172:8889/test", //opoos.. don't forget to edit ip if network changed
 						//get ip by ifconfig, port from mamp main webpage
-				"root",
+				"root",			//username
 				"root"      //password
-		); 
-		
+		);
+
 
 		Job job2 = Job.getInstance(conf2);
 		job2.setJobName("Model");
@@ -71,26 +74,30 @@ public class Driver {
 
 		//How to add external dependency to current project?
 		/*
-		  1. upload dependency to hdfs
+		  1. upload dependency to hdfs, here create a path /mysql/ in hdfs
 		  2. use this "addArchiveToClassPath" method to define the dependency path on hdfs
 		 */
 		job2.addArchiveToClassPath(new Path("/mysql/mysql-connector-java-5.1.39-bin.jar"));
 
-		//Why do we add map outputKey and outputValue?
-		//Because map output key and value are inconsistent with reducer output key and value
+		//tricky --- Why do we add map outputKey and outputValue?
+		//Because map's output key and value are inconsistent with reducer output key and value
+
+		//define output of job2's Mapper
 		job2.setMapOutputKeyClass(Text.class);
 		job2.setMapOutputValueClass(Text.class);
+
+		// define output of job2's Reducer
 		job2.setOutputKeyClass(DBOutputWritable.class);
 		job2.setOutputValueClass(NullWritable.class);
-		
-		job2.setMapperClass(LanguageModel.Map.class);
+
+		job2.setMapperClass(LanguageModel.Map.class); // LanguageModel contains job2's Mapper & Reducer classes: Map class & Reduce class
 		job2.setReducerClass(LanguageModel.Reduce.class);
-		
+
 		job2.setInputFormatClass(TextInputFormat.class);
 		job2.setOutputFormatClass(DBOutputFormat.class);
 
-		//use dbOutputformat to define the table name and columns
-		DBOutputFormat.setOutput(job2, "output", 
+		//use dbOutputformat to define the table name("output") and columns(3 cols)
+		DBOutputFormat.setOutput(job2, "output",
 				new String[] {"starting_phrase", "following_word", "count"});
 
 		TextInputFormat.setInputPaths(job2, args[1]);

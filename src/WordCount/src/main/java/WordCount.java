@@ -12,6 +12,13 @@ import org.apache.hadoop.mapreduce.lib.input.FileInputFormat;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 
 public class WordCount {
+  //for degub type1 --- exactly know the data type
+  enum WordList {
+    Big,
+    Data,
+    Love,
+    Other
+  };
 
     public static class TokenizerMapper extends
             Mapper<Object, Text, Text, IntWritable> {
@@ -21,11 +28,39 @@ public class WordCount {
 
         public void map(Object key, Text value, Context context)
                 throws IOException, InterruptedException {
+            /*
+             //  for debug type1
+             String[] words = value.toString().split(" ");
+             for(String word : words){
+                Text outKey = new Text(word);
+                IntWritable outValue = new IntWritable(1);
+                context.write(outKey, outValue);
+
+
+                //debug type2 -- use context to print all
+                context.getCounter("wordcount", word);//(groupname_userdefined, key)
+
+                if(word.toLowerCase().equals("big")) {
+                  context.getCounter(WordList.Big).increment(1); //the counter of key "big" ++
+                } else if(word.toLowerCase().equals("data")) {
+                  context.getCounter(WordList.Data).increment(1);
+                } else if(word.toLowerCase().equals("love")) {
+                  context.getCounter(WordList.Love).increment(1);
+                } else {
+                  context.getCounter(WordList.Other).increment(1);
+              }
+           }
+
+            */
+
+
             StringTokenizer itr = new StringTokenizer(value.toString());
             while (itr.hasMoreTokens()) {
                 word.set(itr.nextToken());
                 context.write(word, one);
             }
+
+
         }
     }
 

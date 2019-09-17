@@ -25,47 +25,51 @@ public class LanguageModel {
 		@Override
 		public void setup(Context context) {
 			Configuration conf = context.getConfiguration();
-			threashold = conf.getInt("threashold", 20);
+			threashold = conf.getInt("threashold", 20); //filter out and skip the phrase freq < 20
 		}
 
-		
+
 		@Override
 		public void map(LongWritable key, Text value, Context context) throws IOException, InterruptedException {
 			if((value == null) || (value.toString().trim()).length() == 0) {
 				return;
 			}
-			//this is cool\t20
+			//input: love big data\t230
+			//love big | data=t230
+			//outputKey = "input_phrase"
+			//outputValue = "following_word=count"
 			String line = value.toString().trim();
-			
+
 			String[] wordsPlusCount = line.split("\t");
 			if(wordsPlusCount.length < 2) {
 				return;
 			}
-			
+
 			String[] words = wordsPlusCount[0].split("\\s+");
 			int count = Integer.valueOf(wordsPlusCount[1]);
-			
+
 			if(count < threashold) {
 				return;
 			}
-			
-			//this is --> cool = 20
+
+			//love big --> data=230
 			StringBuilder sb = new StringBuilder();
-			for(int i = 0; i < words.length-1; i++) {
+			for(int i = 0; i < words.length-1; i++) { //word[0] + .. + word[n-2]
 				sb.append(words[i]).append(" ");
 			}
 			String outputKey = sb.toString().trim();
-			String outputValue = words[words.length - 1];
-			
+			String outputValue = words[words.length - 1]; //the last word (word to predicted)
+
 			if(!((outputKey == null) || (outputKey.length() <1))) {
 				context.write(new Text(outputKey), new Text(outputValue + "=" + count));
+				// output: "love big", "data=230"
 			}
 		}
 	}
 
 	public static class Reduce extends Reducer<Text, Text, DBOutputWritable, NullWritable> {
 
-		int n;
+		int n; //topK
 		// get the n parameter from the configuration
 		@Override
 		public void setup(Context context) {
@@ -75,8 +79,11 @@ public class LanguageModel {
 
 		@Override
 		public void reduce(Text key, Iterable<Text> values, Context context) throws IOException, InterruptedException {
-			
-			//this is, <girl = 50, boy = 60>
+			//inputKey = "input_phrase"
+			//inputValue = <following_word=count1, fw2=count2... >
+			//get topK -> write to database
+
+			//value: <data = 230, apple = 230, boy = 50 ... >
 			TreeMap<Integer, List<String>> tm = new TreeMap<Integer, List<String>>(Collections.reverseOrder());
 			for(Text val: values) {
 				String curValue = val.toString().trim();
@@ -91,14 +98,15 @@ public class LanguageModel {
 					tm.put(count, list);
 				}
 			}
-			//<50, <girl, bird>> <60, <boy...>>
+			//<230, <apple, data>> <50, <boy...>>
 			Iterator<Integer> iter = tm.keySet().iterator();
-			for(int j=0; iter.hasNext() && j<n;) {
+			for(int j=0; iter.hasNext() && j<n;) { //j:index in List（value）to chose topK prediction_word of this current key phrase
 				int keyCount = iter.next();
 				List<String> words = tm.get(keyCount);
 				for(String curWord: words) {
+					//DBOutputWritable's input format is ResultSet class,  readFields(ResultSet arg0) 
 					context.write(new DBOutputWritable(key.toString(), curWord, keyCount),NullWritable.get());
-					j++;
+					j++; //must at here, cannot in the outer for loop
 				}
 			}
 		}
