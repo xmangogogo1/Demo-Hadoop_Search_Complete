@@ -15,7 +15,7 @@
 3. run ngram project:
    cd src/NGram/scr/main/java
 
-   run 2gram,  with threshold_size >= 3, predict_following_words_size = 4:
+   run 2gram,  with threshold_size >= 3, predict_following_words_topk = 4:
    hadoop jar ngram.jar Driver input /output 2 3 4
 
 4. UI setup, then goto localhost:8888

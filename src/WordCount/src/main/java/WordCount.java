@@ -36,10 +36,6 @@ public class WordCount {
                 IntWritable outValue = new IntWritable(1);
                 context.write(outKey, outValue);
 
-
-                //debug type2 -- use context to print all
-                context.getCounter("wordcount", word);//(groupname_userdefined, key)
-
                 if(word.toLowerCase().equals("big")) {
                   context.getCounter(WordList.Big).increment(1); //the counter of key "big" ++
                 } else if(word.toLowerCase().equals("data")) {
@@ -50,6 +46,10 @@ public class WordCount {
                   context.getCounter(WordList.Other).increment(1);
               }
            }
+
+
+               //debug type2 -- use context to print all
+              context.getCounter("wordcount", word);//(groupname_userdefined, key)
 
             */
 
